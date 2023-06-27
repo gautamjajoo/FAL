@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from torch.optim import Adam
 
+
 class DNN(nn.Module):
     def __init__(self, input_features, num_classes, hidden_layers, hidden_nodes):
         super(DNN, self).__init__()
@@ -27,17 +28,11 @@ class DNN(nn.Module):
         x = nn.functional.softmax(x, dim=1)
         return x
 
-# Hyperparameters
-batch_size = 100
-hidden_layers = 2
-hidden_nodes = 90
-input_features = ...  # depends on your input data
-num_classes = ...  # depends on your classification problem
 
 # Instantiate the model
-model = DNN(input_features, num_classes, hidden_layers, hidden_nodes)
+# model = DNN(input_features, num_classes, hidden_layers, hidden_nodes)
 
 # Define the optimizer
-optimizer = Adam(model.parameters())
+# optimizer = Adam(model.parameters())
 
 # Now you can use this model in a training loop, where you would use the optimizer to update the model's parameters
