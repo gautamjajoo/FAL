@@ -25,7 +25,7 @@ class DNN(nn.Module):
             x = layer(x)
 
         # Applying the softmax function to the output layer
-        x = nn.functional.softmax(x, dim=1)
+        # x = nn.functional.softmax(x, dim=1)
         return x
 
 

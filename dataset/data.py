@@ -38,13 +38,35 @@ def preprocess_dataset(file_path):
     df = load_dataset(file_path)
     print(df['Attack_type'].value_counts())
 
+    df4 = df[['frame.time', 'ip.src_host', 'ip.dst_host', 'arp.dst.proto_ipv4',
+              'arp.opcode', 'arp.hw.size', 'arp.src.proto_ipv4', 'icmp.checksum',
+              'icmp.seq_le', 'icmp.transmit_timestamp', 'icmp.unused',
+              'http.file_data', 'http.content_length', 'http.request.uri.query',
+              'http.request.method', 'http.referer', 'http.request.full_uri',
+              'http.request.version', 'http.response', 'http.tls_port', 'tcp.ack',
+              'tcp.ack_raw', 'tcp.checksum', 'tcp.connection.fin',
+              'tcp.connection.rst', 'tcp.connection.syn', 'tcp.connection.synack',
+              'tcp.dstport', 'tcp.flags', 'tcp.flags.ack', 'tcp.len', 'tcp.options',
+              'tcp.payload', 'tcp.seq', 'tcp.srcport', 'udp.port', 'udp.stream',
+              'udp.time_delta', 'dns.qry.name', 'dns.qry.name.len', 'dns.qry.qu',
+              'dns.qry.type', 'dns.retransmission', 'dns.retransmit_request',
+              'dns.retransmit_request_in', 'mqtt.conack.flags',
+              'mqtt.conflag.cleansess', 'mqtt.conflags', 'mqtt.hdrflags', 'mqtt.len',
+              'mqtt.msg_decoded_as', 'mqtt.msg', 'mqtt.msgtype', 'mqtt.proto_len',
+              'mqtt.protoname', 'mqtt.topic', 'mqtt.topic_len', 'mqtt.ver',
+              'mbtcp.len', 'mbtcp.trans_id', 'mbtcp.unit_id',
+              'Attack_type']]
+
     columns_to_drop = ["frame.time", "ip.src_host", "ip.dst_host", "arp.src.proto_ipv4", "arp.dst.proto_ipv4",
                        "http.file_data", "http.request.full_uri", "icmp.transmit_timestamp", "http.request.uri.query",
                        "tcp.options", "tcp.payload", "tcp.srcport", "tcp.dstport", "udp.port", "mqtt.msg"]
 
-    df = drop_columns(df, columns_to_drop)
+    df = drop_columns(df4, columns_to_drop)
     df = drop_missing_values(df)
     df = drop_duplicates(df)
+    df = shuffle(df)
+
+    print(df.info())
 
     encode_text_dummy(df, 'http.request.method')
     encode_text_dummy(df, 'http.referer')
