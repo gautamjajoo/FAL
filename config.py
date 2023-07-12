@@ -44,6 +44,7 @@ def args_parser():
     parser.add_argument('--hidden_nodes', type=int, default=90, help="number of hidden nodes")
 
     # active learning arguments
+    parser.add_argument('--label_percent', type=float, default=0.1, help="percentage of labeled dataset")
     parser.add_argument('--query_ratio', type=float, default=0.05, help="ratio of data examples per one query")
     parser.add_argument('--end_ratio', type=float, default=0.0, help="ratio for stopping query")
     parser.add_argument('--al_method', type=str, default=None)

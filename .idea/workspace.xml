@@ -5,11 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="161ba74c-0dde-4a63-8089-ca39e08af970" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/FL_IIoTdataset.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/FL_IIoTdataset.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/IIoTmodel.py" beforeDir="false" afterPath="$PROJECT_DIR$/IIoTmodel.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/globalModel.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/dataset/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/dataset/data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/state_dict_model_IIoT_edge.pt" beforeDir="false" afterPath="$PROJECT_DIR$/state_dict_model_IIoT_edge.pt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -81,7 +83,7 @@
       <workItem from="1687596222445" duration="8874000" />
       <workItem from="1687853007088" duration="8986000" />
       <workItem from="1688116550618" duration="6834000" />
-      <workItem from="1688545480666" duration="23101000" />
+      <workItem from="1688545480666" duration="35770000" />
     </task>
     <servers />
   </component>

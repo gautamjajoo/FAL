@@ -5,12 +5,9 @@ from dataset.dataSetSplit import DatasetSplit
 import torch.optim as optim
 from IIoTmodel import DNN
 import numpy as np
+from data.entropysampling import EntropySampling
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, classification_report, \
     confusion_matrix
-from al_strategies.entropySampling import EntropySampler
-from torch.utils.data import TensorDataset
-import pandas as pd
-
 
 
 class DNNModel(object):
@@ -34,8 +31,6 @@ class DNNModel(object):
         self.optimizer = optim.Adam(self.net.parameters(), lr=args.lr)
 
         self.history = {'train_loss': [], 'test_loss': []}
-
-        self.entropy_sampler = EntropySampler()
 
     def train(self, model):
         mean_losses_superv = []
@@ -81,28 +76,6 @@ class DNNModel(object):
             torch.save(self.net.state_dict(), path)
             return sum(mean_losses_superv) / len(mean_losses_superv), train_acc, self.net.state_dict()
             # print('Done.....')
-
-    def train_with_entropy_sampling(self, model, labeled_dataset, unlabeled_dataset, num_samples):
-        labeled_indices = range(len(labeled_dataset))
-        unlabeled_indices = self.entropy_sampler.sample(self.args, model, unlabeled_dataset, num_samples)
-        
-        labeled_data = labeled_dataset[labeled_indices]
-        unlabeled_data = unlabeled_dataset[unlabeled_indices]
-        
-        combined_data = pd.concat([labeled_data, unlabeled_data])
-        
-        X_train = combined_data.drop(['Attack_type'], axis=1)
-        y_train = combined_data['Attack_type']
-        
-        X_train_tensor = torch.Tensor(X_train.values.astype(np.float32))
-        y_train_tensor = torch.LongTensor(y_train.values.astype(np.int64))
-
-        train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
-        self.train_loader = DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True)
-        
-        loss, train_acc, w = self.train(model)
-        
-        return loss, train_acc, w, combined_data
 
     def test_inference(self, model, test_dataset):
         nb_classes = 15
