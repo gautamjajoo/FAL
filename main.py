@@ -82,6 +82,7 @@ if __name__ == '__main__':
 
         print("Number of classes:", num_classes)
         print("Number of input features:", input_features)
+
         X_train, X_val, X_test, X_labeled, y_train, y_val, y_test, y_labeled = \
             split_dataset(df, seed=args.seed, size=args.size, labeled_data_ratio=args.labeled_data_ratio)
 
@@ -95,7 +96,7 @@ if __name__ == '__main__':
 
         # Print the shapes of the resulting datasets
         print("Training set shape:", X_train.shape)
-        print("Training set shape:", X_labeled.shape)
+        print("Labeled set shape:", X_labeled.shape)
         print("Validation set shape:", X_val.shape)
         print("Test set shape:", X_test.shape)
 
@@ -142,7 +143,7 @@ if __name__ == '__main__':
     if args.dataset == "edgeiiot":
         logger = SummaryWriter('../logs')
         # load data
-        train_dataset, labeled_dataset, test_dataset, val_dataset, user_groups, labeled_groups = get_dataset(args)
+        train_dataset, test_dataset, labeled_dataset, val_dataset, user_groups, labeled_groups = get_dataset(args)
 
     else:
         exit('Error: unrecognized dataset')
@@ -179,11 +180,12 @@ if __name__ == '__main__':
                 train_dataset = combined_train_dataset
                 labeled_dataset = combined_labeled_dataset
 
-            print("train_dataset len ", train_dataset.tensors[0])
+                # Splitting the train and labeled dataset into user groups
+                user_groups = split_iid(train_dataset, args.num_users)
+                labeled_groups = split_iid(labeled_dataset, args.num_users)
 
-            # Splitting the train and labeled dataset into user groups
-            user_groups = split_iid(train_dataset, args.num_users)
-            labeled_groups = split_iid(labeled_dataset, args.num_users)
+            print("train_dataset", len(train_dataset))
+            print("labeled_dataset", len(labeled_dataset))
 
             for idx in idxs_users:
 
@@ -197,7 +199,7 @@ if __name__ == '__main__':
                 # Collecting the labeled indices from all the clients
                 unlabeled_indices += client_labeled_indices
 
-                print("client_unlabeled_indices", client_labeled_indices)
+                print("unlabeled_indices", unlabeled_indices)
                 
                 # print(w)
                 # print("w", w)
@@ -218,5 +220,10 @@ if __name__ == '__main__':
             # This updates the global model
             DNN_model.load_state_dict(average_weights(local_weights))
 
-            global_acc, _, _, _, _, _ = DNN_client.test_inference(DNN_model, val_dataset)
+            global_acc, F1_score, Precision, Recall, class_report, test_loss = DNN_client.test_inference(DNN_model, val_dataset)
             print("|---- Global Model Accuracy: {:.2f}%".format(global_acc))
+            print("|---- F1_score:", F1_score)
+            print("|---- Precision:", Precision)
+            print("|---- Recall:", Recall)
+            print(class_report)
+            print(f'Testing Loss : {np.mean(np.array(test_loss))}')

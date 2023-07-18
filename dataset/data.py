@@ -115,6 +115,10 @@ def split_dataset(df, seed, size, labeled_data_ratio):
     X_train, X_break, y_train, y_break = train_test_split(X, y, random_state=seed, test_size=size)
     X_test, X_val, y_test, y_val = train_test_split(X_break, y_break, random_state=seed+1, test_size=0.5)
 
+    print("Train set size: ", len(X_train))
+    print("Validation set size: ", len(X_val))
+    print("Test set size: ", len(X_test))
+
     labeled_size = int(len(X_train) * labeled_data_ratio)
 
     labeled_indices = np.random.choice(len(X_train), labeled_size, replace=False)
@@ -123,6 +127,13 @@ def split_dataset(df, seed, size, labeled_data_ratio):
 
     X_train = X_train.drop(X_train.index[labeled_indices])
     y_train = y_train.drop(y_train.index[labeled_indices])
+
+    print("Labeled set size: ", len(X_labeled))
+
+    print("Train set size after labeled data: ", len(X_train))
+    print("Validation set size after labeled data: ", len(X_val))
+    print("Test set size after labeled data: ", len(X_test))
+    print("Labeled set size after labeled data: ", len(X_labeled))    
 
     return X_train, X_val, X_test, X_labeled, y_train, y_val, y_test, y_labeled
 

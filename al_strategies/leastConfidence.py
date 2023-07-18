@@ -2,27 +2,26 @@ import torch
 import torch.nn as nn
 from al_strategies.predictProbability import PredictProbability
 
-class MarginSampler:
+class LeastConfidenceSampler:
     def __init__(self, model):
         self.model = model
         self.predict_probability = PredictProbability(self.model)
 
     def sample(self, args, train_loader, num_samples):
         probabilities = self.predict_probability.predict_probabilities(args, train_loader)
-        margins = self.calculate_margins(probabilities)
-        selected_indices = self.select_indices(margins, num_samples)
+        confidences = self.calculate_confidences(probabilities)
+        selected_indices = self.select_indices(confidences, num_samples)
         return selected_indices
 
-    def calculate_margins(self, probabilities):
-        margins = []
+    def calculate_confidences(self, probabilities):
+        confidences = []
         for prob in probabilities:
             max_prob = torch.max(torch.tensor(prob))
-            second_max_prob = torch.max(torch.tensor(prob), dim=0).values
-            margin = max_prob - second_max_prob
-            margins.append(margin.mean().item())
-        return margins
+            confidence = 1 - max_prob
+            confidences.append(confidence.item())
+        return confidences
 
-    def select_indices(self, margins, num_samples):
-        sorted_indices = sorted(range(len(margins)), key=lambda k: margins[k], reverse=True)
+    def select_indices(self, confidences, num_samples):
+        sorted_indices = sorted(range(len(confidences)), key=lambda k: confidences[k], reverse=True)
         selected_indices = sorted_indices[:num_samples]
         return selected_indices

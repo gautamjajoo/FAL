@@ -1,23 +1,14 @@
 import torch
 import torch.nn as nn
+from al_strategies.predictProbability import PredictProbability
 
 class EntropySampler:
     def __init__(self, model):
         self.model = model
+        self.predict_probability = PredictProbability(self.model)
 
-    def predict_probabilities(self, args, dataloader):
-        device = next(self.model.parameters()).device
-        probabilities = []
-
-        with torch.no_grad():
-            for inputs, _ in dataloader:
-                inputs = inputs.to(device)
-                outputs = self.model(inputs)
-                probabilities.append(nn.functional.softmax(outputs, dim=1).squeeze().tolist())
-
-        return probabilities
-
-    def sample(self, args, probabilities, num_samples):
+    def sample(self, args, train_loader, num_samples):
+        probabilities = self.predict_probability.predict_probabilities(args, train_loader)
         entropies = self.calculate_entropies(probabilities)
         selected_indices = self.select_indices(entropies, num_samples)
         return selected_indices
