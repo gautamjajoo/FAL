@@ -108,14 +108,14 @@ def preprocess_dataset(file_path):
     return df
 
 
-def split_dataset(df, seed, size, label_percent):
+def split_dataset(df, seed, size, labeled_data_ratio):
     y = df['Attack_type']
     X = df.drop(['Attack_type'], axis=1)
 
     X_train, X_break, y_train, y_break = train_test_split(X, y, random_state=seed, test_size=size)
     X_test, X_val, y_test, y_val = train_test_split(X_break, y_break, random_state=seed+1, test_size=0.5)
 
-    labeled_size = int(len(X_train) * label_percent)
+    labeled_size = int(len(X_train) * labeled_data_ratio)
 
     labeled_indices = np.random.choice(len(X_train), labeled_size, replace=False)
     X_labeled = X_train.iloc[labeled_indices]

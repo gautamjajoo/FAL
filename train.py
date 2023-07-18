@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, Subset, ConcatDataset
 from dataset.dataSetSplit import DatasetSplit
 import torch.optim as optim
 from IIoTmodel import DNN
@@ -14,12 +14,23 @@ import pandas as pd
 
 
 class DNNModel(object):
-    def __init__(self, args, train_dataset, test_dataset, idxs, logger):
+    def __init__(self, args, train_dataset, labeled_dataset, test_dataset, idxs, labeled_idxs, logger):
 
         self.args = args
         self.logger = logger
         self.train_loader = DataLoader(DatasetSplit(train_dataset, idxs), batch_size=args.batch_size, shuffle=True)
+        self.labeled_loader = DataLoader(DatasetSplit(labeled_dataset, labeled_idxs), batch_size=args.batch_size,shuffle=True)
         self.test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+        self.num_samples = args.num_samples
+
+        self.labeled_dataset = labeled_dataset
+        self.labeled_idxs = labeled_idxs
+
+        self.train_dataset = train_dataset
+        self.idxs = idxs
+
+        # print("idxs", idxs)
+        # print("labeled_idxs", labeled_idxs)
 
         # size=sys.getsizeof(self.train_loader)
         # print("data_user", size)
@@ -35,9 +46,9 @@ class DNNModel(object):
 
         self.history = {'train_loss': [], 'test_loss': []}
 
-        self.entropy_sampler = EntropySampler()
+        self.entropy_sampler = EntropySampler(self.net)
 
-    def train(self, model):
+    def train(self, model, training_loader):
         mean_losses_superv = []
         # self.net.train()
         total = 0
@@ -45,7 +56,7 @@ class DNNModel(object):
         for epoch in range(self.args.client_epochs):
             h = np.array([])
 
-            for x, y in self.train_loader:
+            for x, y in training_loader:
                 self.optimizer.zero_grad()
                 x = x.float()
 
@@ -82,27 +93,60 @@ class DNNModel(object):
             return sum(mean_losses_superv) / len(mean_losses_superv), train_acc, self.net.state_dict()
             # print('Done.....')
 
-    def train_with_entropy_sampling(self, model, labeled_dataset, unlabeled_dataset, num_samples):
-        labeled_indices = range(len(labeled_dataset))
-        unlabeled_indices = self.entropy_sampler.sample(self.args, model, unlabeled_dataset, num_samples)
-        
-        labeled_data = labeled_dataset[labeled_indices]
-        unlabeled_data = unlabeled_dataset[unlabeled_indices]
-        
-        combined_data = pd.concat([labeled_data, unlabeled_data])
-        
-        X_train = combined_data.drop(['Attack_type'], axis=1)
-        y_train = combined_data['Attack_type']
-        
-        X_train_tensor = torch.Tensor(X_train.values.astype(np.float32))
-        y_train_tensor = torch.LongTensor(y_train.values.astype(np.int64))
+    def train_with_entropy_sampling(self, model):
+        loss, train_acc, w = self.train(model, self.labeled_loader)
 
-        train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
-        self.train_loader = DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True)
+        unlabeled_probs = self.entropy_sampler.predict_probabilities(self.args, self.train_loader)
+        num_samples = int(self.num_samples * self.train_loader.__len__())
+        unlabeled_indices = self.entropy_sampler.sample(self.args, unlabeled_probs, num_samples)
+
+        print("unlabeled_indices", unlabeled_indices)
+
+        labeled_split_dataset = DatasetSplit(self.labeled_dataset, self.labeled_idxs)
+        unlabeled_split_dataset = DatasetSplit(self.train_dataset, unlabeled_indices)
+
+        combined_dataset = ConcatDataset([labeled_split_dataset, unlabeled_split_dataset])
+
+        combined_loader = DataLoader(combined_dataset, batch_size=self.args.batch_size, shuffle=True)
         
-        loss, train_acc, w = self.train(model)
+        # labeled_data_loader = self.labeled_loader
+        # unlabeled_data = Subset(self.train_loader.dataset, unlabeled_indices)
+        # print("unlabeled_data", unlabeled_data)
+        # unlabeled_data_loader = DataLoader(DatasetSplit(unlabeled_data, range(len(unlabeled_data))), batch_size=self.args.batch_size, shuffle=True)
         
-        return loss, train_acc, w, combined_data
+        # combined_data_loader = ConcatDataset([labeled_data_loader, unlabeled_data_loader])
+        # combined_loader = DataLoader(DatasetSplit(combined_data_loader, range(len(combined_data_loader))), batch_size=self.args.batch_size, shuffle=True)
+
+        # labeled_dataset = combined_data_loader    
+        # unlabeled_dataset = Subset(self.train_loader, [idx for idx in self. train_loader.dataset.idxs if idx not in unlabeled_indices])
+
+        # X_train = combined_data.drop(['Attack_type'], axis=1)
+        # y_train = combined_data['Attack_type']
+        
+        # X_train_tensor = torch.Tensor(X_train.values.astype(np.float32))
+        # y_train_tensor = torch.LongTensor(y_train.values.astype(np.int64))
+
+        # train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+        # self.train_loader = DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True)
+        
+
+        # Train the `model` on the combined dataset
+        loss, train_acc, w = self.train(model, combined_loader)
+
+        # filtered_indices = [idx for idx in range(len(self.train_dataset)) if idx not in unlabeled_indices]
+        # unlabeled_data = []
+        # for idx in filtered_indices:
+        #     if self.train_dataset[idx][0].dim() > 0 and self.train_dataset[idx][1].dim() > 0:
+        #         unlabeled_data.append((self.train_dataset[idx][0], self.train_dataset[idx][1]))
+
+        # unlabeled_data = TensorDataset(*[torch.stack((X_train, y_train)) for X_train, y_train in unlabeled_data])
+
+        # combined_data = [combined_dataset[i] for i in range(len(combined_dataset))]
+        # combined_data = list(zip(*combined_data))
+
+        # combined_tensor_dataset = TensorDataset(*[torch.stack(samples) for samples in combined_data])
+
+        return loss, train_acc, w, unlabeled_indices
 
     def test_inference(self, model, test_dataset):
         nb_classes = 15
