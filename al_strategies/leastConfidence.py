@@ -8,6 +8,7 @@ class LeastConfidenceSampler:
         self.predict_probability = PredictProbability(self.model)
 
     def sample(self, args, train_loader, num_samples):
+        print("I AM IN LEAST CONFIDENCE")
         probabilities = self.predict_probability.predict_probabilities(args, train_loader)
         confidences = self.calculate_confidences(probabilities)
         selected_indices = self.select_indices(confidences, num_samples)

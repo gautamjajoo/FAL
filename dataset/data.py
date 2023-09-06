@@ -36,6 +36,7 @@ def encode_text_dummy(df, name):
 
 
 def preprocess_dataset(file_path):
+    print(file_path)
     df = load_dataset(file_path)
     print(df['Attack_type'].value_counts())
 
@@ -137,10 +138,6 @@ def split_dataset(df, seed, size, labeled_data_ratio):
 
     return X_train, X_val, X_test, X_labeled, y_train, y_val, y_test, y_labeled
 
-
-
-# Test the data pre processing part
-# file_path = '/Users/gautamjajoo/Desktop/FAL/dataset/Edge-IIoTset/DNN-EdgeIIoT-dataset.csv'
 
 # df = preprocess_dataset(file_path)
 # X_train, X_val, X_test, y_train, y_val, y_test = split_dataset(df, seed=1, size=0.2)

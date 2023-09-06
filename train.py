@@ -9,6 +9,7 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
     confusion_matrix
 from al_strategies.entropySampling import EntropySampler
 from al_strategies.marginSampling import MarginSampler
+from al_strategies.leastConfidence import LeastConfidenceSampler
 from torch.utils.data import TensorDataset
 import pandas as pd
 
@@ -49,6 +50,8 @@ class DNNModel(object):
 
         self.entropy_sampler = EntropySampler(self.net)
         self.margin_sampler = MarginSampler(self.net)
+        self.least_confidence_sampler = LeastConfidenceSampler(self.net)
+
 
     def train(self, model, training_loader):
         mean_losses_superv = []
@@ -95,7 +98,7 @@ class DNNModel(object):
             return sum(mean_losses_superv) / len(mean_losses_superv), train_acc, self.net.state_dict()
             # print('Done.....')
 
-    def train_with_entropy_sampling(self, model):
+    def train_with_sampling(self, model):
         loss, train_acc, w = self.train(model, self.labeled_loader)
 
         print("length of labeled_loader before AL", self.labeled_loader.__len__())
@@ -105,11 +108,14 @@ class DNNModel(object):
 
         print("length of num_samples", num_samples)
 
-        # unlabeled_probs = self.entropy_sampler.predict_probabilities(self.args, self.train_loader)
-        unlabeled_indices = self.entropy_sampler.sample(self.args, self.train_loader, num_samples)
+        if(self.args.al_method == "entropysampling"):
+            unlabeled_indices = self.entropy_sampler.sample(self.args, self.train_loader, num_samples)
 
-        # unlabeled_probs = self.margin_sampler.predict_probabilities(self.args, self.train_loader)
-        # unlabeled_indices = self.margin_sampler.sample(self.args, self.train_loader, num_samples)
+        elif(self.args.al_method == "marginsampling"):
+            unlabeled_indices = self.margin_sampler.sample(self.args, self.train_loader, num_samples)
+
+        else:
+            unlabeled_indices = self.least_confidence_sampler.sample(self.args, self.train_loader, num_samples)
 
         print("unlabeled_indices", unlabeled_indices)
 

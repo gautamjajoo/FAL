@@ -8,6 +8,7 @@ class EntropySampler:
         self.predict_probability = PredictProbability(self.model)
 
     def sample(self, args, train_loader, num_samples):
+        print("I AM IN ENTROPY")
         probabilities = self.predict_probability.predict_probabilities(args, train_loader)
         entropies = self.calculate_entropies(probabilities)
         selected_indices = self.select_indices(entropies, num_samples)

@@ -8,6 +8,7 @@ class MarginSampler:
         self.predict_probability = PredictProbability(self.model)
 
     def sample(self, args, train_loader, num_samples):
+        print("I AM IN MARGIN SAMPLING")
         probabilities = self.predict_probability.predict_probabilities(args, train_loader)
         margins = self.calculate_margins(probabilities)
         selected_indices = self.select_indices(margins, num_samples)

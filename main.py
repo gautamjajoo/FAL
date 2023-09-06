@@ -14,9 +14,10 @@ from al_strategies.entropySampling import EntropySampler
 from torch.utils.data import ConcatDataset
 from torch.utils.data import DataLoader, Dataset
 from dataset.dataSetSplit import DatasetSplit
+import matplotlib.pyplot as plt
 
 
-file_path = '/Users/gautamjajoo/Desktop/FAL/dataset/Edge-IIoTset/DNN-EdgeIIoT-dataset.csv'
+file_path = 'C:/Users/perera/Desktop/FAL/FAL/dataset/Edge-IIoTset/DNN-EdgeIIoT-dataset.csv'
 
 if __name__ == '__main__':
     args = args_parser()
@@ -71,6 +72,21 @@ if __name__ == '__main__':
         filtered_labeled_dataset = TensorDataset(filtered_X_labeled_tensor, filtered_y_labeled_tensor)
 
         return filtered_labeled_dataset
+    
+
+    # Define the function to plot the best and worst client in each round
+    def plot_best_worst_clients(best_clients_list, worst_clients_list):
+        plt.figure(figsize=(10, 6))
+        rounds = len(best_clients_list)
+        rounds_list = list(range(1, rounds + 1))
+        plt.plot(rounds_list, best_clients_list, 'go-', label='Best Client')
+        plt.plot(rounds_list, worst_clients_list, 'ro-', label='Worst Client')
+        plt.xlabel('Round')
+        plt.ylabel('Test Accuracy')
+        plt.title('Test Accuracy of Best and Worst Clients in Each Round')
+        plt.legend()
+        plt.grid()
+        plt.show()
 
     # Function to get the dataset
     def get_dataset(args):
@@ -139,91 +155,199 @@ if __name__ == '__main__':
             w_avg[key] = torch.div(w_avg[key], len(w))
         return w_avg
 
-    # Add an option for choosing the dataset
-    if args.dataset == "edgeiiot":
-        logger = SummaryWriter('../logs')
-        # load data
-        train_dataset, test_dataset, labeled_dataset, val_dataset, user_groups, labeled_groups = get_dataset(args)
+    num_labeled_samples_list = []
+    global_accuracy_list_entropy = []
+    global_accuracy_list_margin = []
+    global_accuracy_list_least_confidence = []   
 
-    else:
-        exit('Error: unrecognized dataset')
+    for i in range(3):
+        if i == 0:
+            args.al_method = "entropysampling"
+        elif i == 1:
+            args.al_method = "marginsampling"
+        else:
+            args.al_method = "leastconfidence"
 
-    if args.model == 'IIoTmodel':
-        DNN_model = DNN(args.input_features, args.num_classes, args.hidden_layers, args.hidden_nodes)
-        print(DNN_model)
-        # Training
-        train_loss, train_accuracy = [], []
-        val_acc_list, net_list = [], []
-        cv_loss, cv_acc = [], []
-        print_every = 2
-        val_loss_pre, counter = 0, 0
-        unlabeled_indices = []
+        # Add an option for choosing the dataset
+        if args.dataset == "edgeiiot":
+            logger = SummaryWriter('../logs')
+            # load data
+            train_dataset, test_dataset, labeled_dataset, val_dataset, user_groups, labeled_groups = get_dataset(args)
 
-        for rounds in tqdm(range(args.rounds)):
-            # in the server
-            local_weights, local_losses = [], []
-            print(f'\n | Training Round : {rounds + 1} |\n')
+        else:
+            exit('Error: unrecognized dataset')
 
-            # global_model.train(auto_encoder_model)
-            m = max(int(args.frac * args.num_users), 1)
-            idxs_users = np.random.choice(range(args.num_users), m, replace=False)
-            print("idxs_users", idxs_users)
+        if args.model == 'IIoTmodel':
+            DNN_model = DNN(args.input_features, args.num_classes, args.hidden_layers, args.hidden_nodes)
+            print(DNN_model)
+            # Training
+            train_loss, train_accuracy = [], []
+            val_acc_list, net_list = [], []
+            cv_loss, cv_acc = [], []
+            print_every = 2
+            val_loss_pre, counter = 0, 0
+            unlabeled_indices = []
 
-            if rounds > 0:
+            global_accuracy_per_round = []
+            global_F1_score_per_round = []
+            global_Precision_per_round = []
 
-                # Removing the active learning labeled indices from the train dataset
-                combined_train_dataset = remove_labeled_data(train_dataset, unlabeled_indices)
-                
-                # Adding active learning labeled indices again to the labeled dataset
-                combined_labeled_dataset = add_labeled_data(labeled_dataset, train_dataset, unlabeled_indices)
-                
-                train_dataset = combined_train_dataset
-                labeled_dataset = combined_labeled_dataset
+            best_clients_list = []
+            worst_clients_list = []
 
-                # Splitting the train and labeled dataset into user groups
-                user_groups = split_iid(train_dataset, args.num_users)
-                labeled_groups = split_iid(labeled_dataset, args.num_users)
+            for rounds in tqdm(range(args.rounds)):
+                # in the server
+                local_weights, local_losses = [], []
+                client_test_accuracy = []
 
-            print("train_dataset", len(train_dataset))
-            print("labeled_dataset", len(labeled_dataset))
+                print(f'\n | Training Round : {rounds + 1} |\n')
 
-            for idx in idxs_users:
+                # global_model.train(auto_encoder_model)
+                m = max(int(args.frac * args.num_users), 1)
+                idxs_users = np.random.choice(range(args.num_users), m, replace=False)
+                print("idxs_users", idxs_users)
+                client_test_accuracy_per_round = [[] for _ in range(max(idxs_users) + 1)]
 
-                DNN_client = DNNModel(args=args, train_dataset=train_dataset, labeled_dataset =labeled_dataset, 
-                                      test_dataset=test_dataset, idxs=user_groups[idx], 
-                                      labeled_idxs = labeled_groups[idx],
-                                      logger=logger)
+                if rounds > 0:
 
-                loss, train_acc, w, client_labeled_indices = DNN_client.train_with_entropy_sampling(DNN_model)
+                    # Removing the active learning labeled indices from the train dataset
+                    combined_train_dataset = remove_labeled_data(train_dataset, unlabeled_indices)
+                    
+                    # Adding active learning labeled indices again to the labeled dataset
+                    combined_labeled_dataset = add_labeled_data(labeled_dataset, train_dataset, unlabeled_indices)
+                    
+                    train_dataset = combined_train_dataset
+                    labeled_dataset = combined_labeled_dataset
 
-                # Collecting the labeled indices from all the clients
-                unlabeled_indices += client_labeled_indices
+                    # Splitting the train and labeled dataset into user groups
+                    user_groups = split_iid(train_dataset, args.num_users)
+                    labeled_groups = split_iid(labeled_dataset, args.num_users)
 
-                print("unlabeled_indices", unlabeled_indices)
-                
-                # print(w)
-                # print("w", w)
-                # print("loss", loss)
-                local_weights.append(copy.deepcopy(w))
-                # local_losses.append(copy.deepcopy(loss))
+                if(i == 0):
+                    num_labeled_samples_list.append(len(labeled_dataset))
 
-                test_acc, F1_score, Precision, Recall, class_report, test_loss = DNN_client.test_inference(DNN_model,
-                                                                                                           test_dataset)
-                print(f'client_id {idx}')
-                print("|---- Test Accuracy_client: {:.2f}%".format(test_acc))
+
+                print("train_dataset", len(train_dataset))
+                print("labeled_dataset", len(labeled_dataset))
+
+                for idx in idxs_users:
+
+                    DNN_client = DNNModel(args=args, train_dataset=train_dataset, labeled_dataset =labeled_dataset, 
+                                        test_dataset=test_dataset, idxs=user_groups[idx], 
+                                        labeled_idxs = labeled_groups[idx],
+                                        logger=logger)
+
+                    loss, train_acc, w, client_labeled_indices = DNN_client.train_with_sampling(DNN_model)
+
+                    # Collecting the labeled indices from all the clients
+                    unlabeled_indices += client_labeled_indices
+
+                    # print("unlabeled_indices", unlabeled_indices)                
+                    # print(w)
+                    # print("w", w)
+                    # print("loss", loss)
+                    local_weights.append(copy.deepcopy(w))
+                    # local_losses.append(copy.deepcopy(loss))
+
+                    test_acc, F1_score, Precision, Recall, class_report, test_loss = DNN_client.test_inference(DNN_model,
+                                                                                                            test_dataset)
+                    print(f'client_id {idx}')
+                    print("|---- Test Accuracy_client: {:.2f}%".format(test_acc))
+                    print("|---- F1_score:", F1_score)
+                    print("|---- Precision:", Precision)
+                    print("|---- Recall:", Recall)
+                    print(class_report)
+                    print(f'Testing Loss : {np.mean(np.array(test_loss))}')
+
+                    # client_test_accuracy.append(test_acc)
+                    # client_F1_score.append(F1_score)
+                    # client_precision.append(Precision)
+                    # client_recall.append(Recall)
+                    # client_testing_loss.append(np.mean(np.array(test_loss)))
+                    client_test_accuracy.append(test_acc)
+                    client_test_accuracy_per_round[idx].append(test_acc)
+                # print(local_weights)
+                # This updates the global model
+                DNN_model.load_state_dict(average_weights(local_weights))
+
+                global_acc, F1_score, Precision, Recall, class_report, test_loss = DNN_client.test_inference(DNN_model, val_dataset)
+                print("|---- Global Model Accuracy: {:.2f}%".format(global_acc))
                 print("|---- F1_score:", F1_score)
                 print("|---- Precision:", Precision)
                 print("|---- Recall:", Recall)
                 print(class_report)
                 print(f'Testing Loss : {np.mean(np.array(test_loss))}')
-            # print(local_weights)
-            # This updates the global model
-            DNN_model.load_state_dict(average_weights(local_weights))
 
-            global_acc, F1_score, Precision, Recall, class_report, test_loss = DNN_client.test_inference(DNN_model, val_dataset)
-            print("|---- Global Model Accuracy: {:.2f}%".format(global_acc))
-            print("|---- F1_score:", F1_score)
-            print("|---- Precision:", Precision)
-            print("|---- Recall:", Recall)
-            print(class_report)
-            print(f'Testing Loss : {np.mean(np.array(test_loss))}')
+                global_accuracy_per_round.append(global_acc)
+                global_F1_score_per_round.append(F1_score)
+                global_Precision_per_round.append(Precision)
+
+                if args.al_method == "entropysampling":
+                    global_accuracy_list_entropy.append(global_acc)
+
+                elif args.al_method == "marginsampling":
+                    global_accuracy_list_margin.append(global_acc)
+                    
+                else:
+                    global_accuracy_list_least_confidence.append(global_acc)
+
+                print(global_accuracy_list_entropy)
+                print(global_accuracy_list_margin)
+                print(global_accuracy_list_least_confidence)
+                print(num_labeled_samples_list)
+
+                best_client_idx = np.argmax(np.array(client_test_accuracy))
+                worst_client_idx = np.argmin(np.array(client_test_accuracy))
+                best_clients_list.append(client_test_accuracy[best_client_idx])
+                worst_clients_list.append(client_test_accuracy[worst_client_idx])
+            
+            plot_best_worst_clients(best_clients_list, worst_clients_list)
+            
+            # Plot Test Accuracy for each client across rounds
+            plt.figure(figsize=(10, 6))
+            rounds_list = range(1, args.rounds + 1)
+            plt.plot(rounds_list, global_accuracy_per_round, marker='o', label='Global Accuracy')
+            plt.xlabel('Round')
+            plt.ylabel('Accuracy')
+            plt.title('Global Accuracy after each Round')
+            plt.legend()
+            plt.show()
+
+            plt.figure(figsize=(10, 6))
+            rounds_list = range(1, args.rounds + 1)
+            plt.plot(rounds_list, global_F1_score_per_round, marker='o', label='Global F1 score')
+            plt.xlabel('Round')
+            plt.ylabel('F1 Score')
+            plt.title('Global F1 Score after each Round')
+            plt.legend()
+            plt.show()
+
+            plt.figure(figsize=(10, 6))
+            rounds_list = range(1, args.rounds + 1)
+            plt.plot(rounds_list, global_Precision_per_round, marker='o', label='Global Precision')
+            plt.xlabel('Round')
+            plt.ylabel('Precision')
+            plt.title('Global Precision after each Round')
+            plt.legend()
+            plt.show()
+
+            print(global_accuracy_list_entropy)
+            print(global_accuracy_list_margin)
+            print(global_accuracy_list_least_confidence)
+            print(num_labeled_samples_list)
+
+    print(global_accuracy_list_entropy)
+    print(global_accuracy_list_margin)
+    print(global_accuracy_list_least_confidence)
+    print(num_labeled_samples_list)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(num_labeled_samples_list, global_accuracy_list_entropy, label='Entropy Sampling')
+    plt.plot(num_labeled_samples_list, global_accuracy_list_margin, label='Margin Sampling')
+    plt.plot(num_labeled_samples_list, global_accuracy_list_least_confidence, label='Least Confidence Sampling')
+    plt.xlabel('Number of Labeled Samples')
+    plt.ylabel('Global Accuracy')
+    plt.title('Global Accuracy vs Number of Labeled Samples')
+    plt.legend()
+    plt.show()
+
