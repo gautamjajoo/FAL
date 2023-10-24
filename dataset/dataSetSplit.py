@@ -13,6 +13,9 @@ class DatasetSplit(Dataset):
 
     def __len__(self):
         return len(self.idxs)
+    
+    def __len_dataset__(self):
+        return len(self.idxs)
 
     def __getitem__(self, item):
         data, target = self.dataset[self.idxs[item]]

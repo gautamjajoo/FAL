@@ -17,7 +17,8 @@ from dataset.dataSetSplit import DatasetSplit
 import matplotlib.pyplot as plt
 
 
-file_path = 'C:/Users/perera/Desktop/FAL/FAL/dataset/Edge-IIoTset/DNN-EdgeIIoT-dataset.csv'
+file_path = '/Users/gautamjajoo/Desktop/FAL/dataset/Edge-IIoTset/DNN-EdgeIIoT-dataset.csv'
+preprocessed_file_path = '/Users/gautamjajoo/Desktop/FAL/dataset/Edge-IIoTset/preprocessed_DNN.csv'
 
 if __name__ == '__main__':
     args = args_parser()
@@ -26,54 +27,117 @@ if __name__ == '__main__':
 
     # Splitting the dataset into num_users parts
     def split_iid(dataset, num_users):
+        """
+        Splits a given dataset into `num_users` number of disjoint subsets, where each subset has an equal number of samples.
+
+        Args:
+            dataset (list): The dataset to be split.
+            num_users (int): The number of disjoint subsets to split the dataset into.
+
+        Returns:
+            dict: A dictionary where the keys are integers representing the user IDs and the values are sets of indices
+            representing the samples allocated to each user.
+        """
         num_items = int(len(dataset) / num_users)  # the number of allocated samples for each client
         print("num_items", num_items)
         dict_users, all_idxs = {}, [i for i in range(len(dataset))]
         for i in range(num_users):
-            dict_users[i] = set(np.random .choice(all_idxs, num_items, replace=False))
+            dict_users[i] = set(np.random.choice(all_idxs, num_items, replace=False))
             all_idxs = list(set(all_idxs) - dict_users[i])
         return dict_users
 
     # Removing the labeled idxs from the training dataset
-    def remove_labeled_data(dataset, idxs):
-        X_train_list = dataset.tensors[0].tolist()
-        y_train_list = dataset.tensors[1].tolist()
+    # def remove_labeled_data(dataset, idxs):
+    #     """
+    #     Removes labeled data from the given dataset based on the provided indices.
 
-        filtered_X_train = []
-        filtered_y_train = []
+    #     Args:
+    #         dataset (TensorDataset): The dataset to remove labeled data from.
+    #         idxs (list): A list of indices of the labeled data to remove.
 
-        for index in range(len(X_train_list)):
-            if index not in idxs:
-                filtered_X_train.append(X_train_list[index])
-                filtered_y_train.append(y_train_list[index])
+    #     Returns:
+    #         TensorDataset: A new dataset with the labeled data removed.
+    #     """
+    #     X_train_list = dataset.tensors[0].tolist()
+    #     y_train_list = dataset.tensors[1].tolist()
 
-        filtered_X_train_tensor = torch.tensor(filtered_X_train)
-        filtered_y_train_tensor = torch.tensor(filtered_y_train)
+    #     filtered_X_train = []
+    #     filtered_y_train = []
 
-        filtered_train_dataset = TensorDataset(filtered_X_train_tensor, filtered_y_train_tensor)
+    #     for index in range(len(X_train_list)):
+    #         if index not in idxs:
+    #             filtered_X_train.append(X_train_list[index])
+    #             filtered_y_train.append(y_train_list[index])
 
-        return filtered_train_dataset
+    #     filtered_X_train_tensor = torch.tensor(filtered_X_train)
+    #     filtered_y_train_tensor = torch.tensor(filtered_y_train)
+
+    #     filtered_train_dataset = TensorDataset(filtered_X_train_tensor, filtered_y_train_tensor)
+
+    #     return filtered_train_dataset
     
     # Adding the labeled idxs to the labeled dataset
-    def add_labeled_data(labeled_dataset, train_dataset, idxs):
-        X_labeled_list = labeled_dataset.tensors[0].tolist()
-        y_labeled_list = labeled_dataset.tensors[1].tolist()
+    # def add_labeled_data(labeled_dataset, train_dataset, idxs):
+    #     X_labeled_list = labeled_dataset.tensors[0].tolist()
+    #     y_labeled_list = labeled_dataset.tensors[1].tolist()
 
-        X_train_list = train_dataset.tensors[0].tolist()
-        y_train_list = train_dataset.tensors[1].tolist()
+    #     X_train_list = train_dataset.tensors[0].tolist()
+    #     y_train_list = train_dataset.tensors[1].tolist()
 
-        for index in idxs:
-            X_labeled_list.append(X_train_list[index])
-            y_labeled_list.append(y_train_list[index])
+    #     for index in idxs:
+    #         X_labeled_list.append(X_train_list[index])
+    #         y_labeled_list.append(y_train_list[index])
 
-        filtered_X_labeled_tensor = torch.tensor(X_labeled_list)
-        filtered_y_labeled_tensor = torch.tensor(y_labeled_list)
+    #     filtered_X_labeled_tensor = torch.tensor(X_labeled_list)
+    #     filtered_y_labeled_tensor = torch.tensor(y_labeled_list)
 
-        filtered_labeled_dataset = TensorDataset(filtered_X_labeled_tensor, filtered_y_labeled_tensor)
+    #     filtered_labeled_dataset = TensorDataset(filtered_X_labeled_tensor, filtered_y_labeled_tensor)
 
-        return filtered_labeled_dataset
+    #     return filtered_labeled_dataset
+
+    def modify_datasets(train_dataset, labeled_dataset, labeled_idxs):
+        """
+        Modify the datasets to remove and add labeled data based on the provided indices.
+
+        Args:
+            train_dataset (TensorDataset): The training dataset to remove labeled data from.
+            labeled_dataset (TensorDataset): The labeled dataset to add labeled data to.
+            labeled_idxs (list): A list of indices of the labeled data to remove from the training dataset 
+                                or add to the labeled dataset
+
+        Returns:
+            Tuple[TensorDataset, TensorDataset]: A tuple containing the modified training dataset and labeled dataset.
+        """
+        # Remove labeled data from the training dataset
+        train_X_list = train_dataset.tensors[0].tolist()
+        train_y_list = train_dataset.tensors[1].tolist()
+
+        modified_train_X = [train_X_list[i] for i in range(len(train_X_list)) if i not in labeled_idxs]
+        modified_train_y = [train_y_list[i] for i in range(len(train_y_list)) if i not in labeled_idxs]
+
+        modified_train_X_tensor = torch.tensor(modified_train_X)
+        modified_train_y_tensor = torch.tensor(modified_train_y)
+
+        modified_train_dataset = TensorDataset(modified_train_X_tensor, modified_train_y_tensor)
+
+        # Add labeled data to the labeled dataset
+        labeled_X_list = labeled_dataset.tensors[0].tolist()
+        labeled_y_list = labeled_dataset.tensors[1].tolist()
+
+        train_X_list = train_dataset.tensors[0].tolist()
+        train_y_list = train_dataset.tensors[1].tolist()
+
+        for index in labeled_idxs:
+            labeled_X_list.append(train_X_list[index])
+            labeled_y_list.append(train_y_list[index])
+
+        modified_labeled_X_tensor = torch.tensor(labeled_X_list)
+        modified_labeled_y_tensor = torch.tensor(labeled_y_list)
+
+        modified_labeled_dataset = TensorDataset(modified_labeled_X_tensor, modified_labeled_y_tensor)
+
+        return modified_train_dataset, modified_labeled_dataset
     
-
     # Define the function to plot the best and worst client in each round
     def plot_best_worst_clients(best_clients_list, worst_clients_list):
         plt.figure(figsize=(10, 6))
@@ -81,9 +145,32 @@ if __name__ == '__main__':
         rounds_list = list(range(1, rounds + 1))
         plt.plot(rounds_list, best_clients_list, 'go-', label='Best Client')
         plt.plot(rounds_list, worst_clients_list, 'ro-', label='Worst Client')
+        
+        # Add labels for the best client points
+        for round_num, accuracy in zip(rounds_list, best_clients_list):
+            plt.annotate(f'{accuracy:.4f}', (round_num, accuracy), textcoords="offset points", xytext=(0,10), ha='center')
+        
+        # Add labels for the worst client points
+        for round_num, accuracy in zip(rounds_list, worst_clients_list):
+            plt.annotate(f'{accuracy:.4f}', (round_num, accuracy), textcoords="offset points", xytext=(0,-20), ha='center')
+        
         plt.xlabel('Round')
         plt.ylabel('Test Accuracy')
         plt.title('Test Accuracy of Best and Worst Clients in Each Round')
+        plt.legend()
+        plt.grid()
+        plt.show()
+
+    def plot_metric_per_round(rounds_list, metric_values, ylabel, title, label):
+        plt.figure(figsize=(10, 6))
+        plt.plot(rounds_list, metric_values, marker='o', label=label)
+        
+        for round_num, metric_value in zip(rounds_list, metric_values):
+            plt.annotate(f'{metric_value:.4f}', (round_num, metric_value), textcoords="offset points", xytext=(0,10), ha='center')
+        
+        plt.xlabel('Round')
+        plt.ylabel(ylabel)
+        plt.title(title)
         plt.legend()
         plt.grid()
         plt.show()
@@ -92,7 +179,7 @@ if __name__ == '__main__':
     def get_dataset(args):
 
         df = preprocess_dataset(file_path)
-
+        # df = pd.read_csv(preprocessed_file_path, low_memory=False)
         num_classes = df['Attack_type'].nunique()
         input_features = df.drop(['Attack_type'], axis=1).shape[1]
 
@@ -102,11 +189,12 @@ if __name__ == '__main__':
         X_train, X_val, X_test, X_labeled, y_train, y_val, y_test, y_labeled = \
             split_dataset(df, seed=args.seed, size=args.size, labeled_data_ratio=args.labeled_data_ratio)
 
+        # Feature scaling using min-max scaling
         scaler = MinMaxScaler()
         scaled_X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
-        scaled_X_labeled = pd.DataFrame(scaler.fit_transform(X_labeled), columns=X_train.columns)
-        scaled_X_val = pd.DataFrame(scaler.fit_transform(X_val), columns=X_val.columns)
-        scaled_X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns)
+        scaled_X_labeled = pd.DataFrame(scaler.transform(X_labeled), columns=X_train.columns)
+        scaled_X_val = pd.DataFrame(scaler.transform(X_val), columns=X_val.columns)
+        scaled_X_test = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
 
         # X_train, X_val, X_test, y_train, y_val, y_test = split_dataset(df, seed=1, size=0.2)
 
@@ -136,8 +224,10 @@ if __name__ == '__main__':
 
         val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
 
-        user_groups = split_iid(train_dataset, args.num_users)
-        labeled_groups = split_iid(labeled_dataset, args.num_users)
+        if(args.iid == 1):
+            user_groups = split_iid(train_dataset, args.num_users)
+            labeled_groups = split_iid(labeled_dataset, args.num_users)
+        
         # print("user_group", user_groups)
         print("Done...")
 
@@ -154,7 +244,7 @@ if __name__ == '__main__':
                 w_avg[key] += w[i][key]
             w_avg[key] = torch.div(w_avg[key], len(w))
         return w_avg
-
+    
     num_labeled_samples_list = []
     global_accuracy_list_entropy = []
     global_accuracy_list_margin = []
@@ -210,28 +300,31 @@ if __name__ == '__main__':
 
                 if rounds > 0:
 
-                    # Removing the active learning labeled indices from the train dataset
-                    combined_train_dataset = remove_labeled_data(train_dataset, unlabeled_indices)
+                    # # Removing the active learning labeled indices from the train dataset
+                    # combined_train_dataset = remove_labeled_data(train_dataset, unlabeled_indices)
                     
-                    # Adding active learning labeled indices again to the labeled dataset
-                    combined_labeled_dataset = add_labeled_data(labeled_dataset, train_dataset, unlabeled_indices)
+                    # # Adding active learning labeled indices again to the labeled dataset
+                    # combined_labeled_dataset = add_labeled_data(labeled_dataset, train_dataset, unlabeled_indices)
                     
-                    train_dataset = combined_train_dataset
-                    labeled_dataset = combined_labeled_dataset
+                    # train_dataset = combined_train_dataset
+                    # labeled_dataset = combined_labeled_dataset
+
+                    train_dataset, labeled_dataset = modify_datasets(train_dataset, labeled_dataset, unlabeled_indices)
+                    unlabeled_indices = []
 
                     # Splitting the train and labeled dataset into user groups
                     user_groups = split_iid(train_dataset, args.num_users)
                     labeled_groups = split_iid(labeled_dataset, args.num_users)
-
+                
+                # This statement is to get the labeled_dataset after each round,
+                # this would be common to all the strategies
                 if(i == 0):
                     num_labeled_samples_list.append(len(labeled_dataset))
-
 
                 print("train_dataset", len(train_dataset))
                 print("labeled_dataset", len(labeled_dataset))
 
                 for idx in idxs_users:
-
                     DNN_client = DNNModel(args=args, train_dataset=train_dataset, labeled_dataset =labeled_dataset, 
                                         test_dataset=test_dataset, idxs=user_groups[idx], 
                                         labeled_idxs = labeled_groups[idx],
@@ -252,7 +345,7 @@ if __name__ == '__main__':
                     test_acc, F1_score, Precision, Recall, class_report, test_loss = DNN_client.test_inference(DNN_model,
                                                                                                             test_dataset)
                     print(f'client_id {idx}')
-                    print("|---- Test Accuracy_client: {:.2f}%".format(test_acc))
+                    print("|---- Test Accuracy_client: {:.6f}%".format(test_acc))
                     print("|---- F1_score:", F1_score)
                     print("|---- Precision:", Precision)
                     print("|---- Recall:", Recall)
@@ -267,11 +360,12 @@ if __name__ == '__main__':
                     client_test_accuracy.append(test_acc)
                     client_test_accuracy_per_round[idx].append(test_acc)
                 # print(local_weights)
+                
                 # This updates the global model
                 DNN_model.load_state_dict(average_weights(local_weights))
 
                 global_acc, F1_score, Precision, Recall, class_report, test_loss = DNN_client.test_inference(DNN_model, val_dataset)
-                print("|---- Global Model Accuracy: {:.2f}%".format(global_acc))
+                print("|---- Global Model Accuracy: {:.6f}%".format(global_acc))
                 print("|---- F1_score:", F1_score)
                 print("|---- Precision:", Precision)
                 print("|---- Recall:", Recall)
@@ -304,33 +398,13 @@ if __name__ == '__main__':
             plot_best_worst_clients(best_clients_list, worst_clients_list)
             
             # Plot Test Accuracy for each client across rounds
-            plt.figure(figsize=(10, 6))
             rounds_list = range(1, args.rounds + 1)
-            plt.plot(rounds_list, global_accuracy_per_round, marker='o', label='Global Accuracy')
-            plt.xlabel('Round')
-            plt.ylabel('Accuracy')
-            plt.title('Global Accuracy after each Round')
-            plt.legend()
-            plt.show()
+            plot_metric_per_round(rounds_list, global_accuracy_per_round, 'Accuracy', 'Global Accuracy after each Round', 'Global Accuracy')
+            plot_metric_per_round(rounds_list, global_F1_score_per_round, 'F1 Score', 'Global F1 Score after each Round', 'Global F1 Score')
+            plot_metric_per_round(rounds_list, global_Precision_per_round, 'Precision', 'Global Precision after each Round', 'Global Precision')
 
-            plt.figure(figsize=(10, 6))
-            rounds_list = range(1, args.rounds + 1)
-            plt.plot(rounds_list, global_F1_score_per_round, marker='o', label='Global F1 score')
-            plt.xlabel('Round')
-            plt.ylabel('F1 Score')
-            plt.title('Global F1 Score after each Round')
-            plt.legend()
-            plt.show()
-
-            plt.figure(figsize=(10, 6))
-            rounds_list = range(1, args.rounds + 1)
-            plt.plot(rounds_list, global_Precision_per_round, marker='o', label='Global Precision')
-            plt.xlabel('Round')
-            plt.ylabel('Precision')
-            plt.title('Global Precision after each Round')
-            plt.legend()
-            plt.show()
-
+            print(best_clients_list)
+            print(worst_clients_list)
             print(global_accuracy_list_entropy)
             print(global_accuracy_list_margin)
             print(global_accuracy_list_least_confidence)

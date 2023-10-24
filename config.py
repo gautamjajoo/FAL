@@ -10,12 +10,12 @@ def args_parser():
     parser.add_argument('--size', type=int, default=0.2, help='size (0.2)')
 
     # federated learning arguments
-    parser.add_argument('--batch_size', type=int, default=64, help='batch size for training')
+    parser.add_argument('--batch_size', type=int, default=100, help='batch size for training')
     parser.add_argument('--num_epochs', type=int, default=10, help='number of epochs')
-    parser.add_argument('--rounds', type=int, default=100, help="rounds of training")
+    parser.add_argument('--rounds', type=int, default=10, help="rounds of training")
     parser.add_argument('--num_classes', type=int, default=15, help="number of classes")
-    parser.add_argument('--num_users', type=int, default=100, help="number of users")
-    parser.add_argument('--frac', type=float, default=0.2, help="the fraction of clients")
+    parser.add_argument('--num_users', type=int, default=10, help="number of users")
+    parser.add_argument('--frac', type=float, default=1, help="the fraction of clients")
     parser.add_argument('--local_ep', type=int, default=10, help="the number of local epochs")
     parser.add_argument('--local_bs', type=int, default=10, help="local batch size")
     parser.add_argument('--test_bs', type=int, default=64, help="test batch size")
@@ -44,7 +44,7 @@ def args_parser():
 
 
     # active learning arguments
-    parser.add_argument('--num_samples', type=float, default=0.15, help="ratio of data used for active learning")
+    parser.add_argument('--num_samples', type=float, default=1, help="ratio of data used for active learning")
     parser.add_argument('--al_method', type=str, default="entropysampling")
 
     args = parser.parse_args()

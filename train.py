@@ -13,17 +13,20 @@ from al_strategies.leastConfidence import LeastConfidenceSampler
 from torch.utils.data import TensorDataset
 import pandas as pd
 
-
-
 class DNNModel(object):
     def __init__(self, args, train_dataset, labeled_dataset, test_dataset, idxs, labeled_idxs, logger):
 
         self.args = args
         self.logger = logger
         self.train_loader = DataLoader(DatasetSplit(train_dataset, idxs), batch_size=args.batch_size, shuffle=True)
-        self.labeled_loader = DataLoader(DatasetSplit(labeled_dataset, labeled_idxs), batch_size=args.batch_size,shuffle=True)
+        self.labeled_loader = DataLoader(DatasetSplit(labeled_dataset, labeled_idxs), batch_size=args.batch_size, shuffle=True)
         self.test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
         self.num_samples = args.num_samples
+        self.batch_size = args.batch_size
+
+        print("Hello")
+        print(len(self.train_loader))
+        print(len(self.train_loader) * args.batch_size)
 
         self.labeled_dataset = labeled_dataset
         self.labeled_idxs = labeled_idxs
@@ -31,8 +34,11 @@ class DNNModel(object):
         self.train_dataset = train_dataset
         self.idxs = idxs
 
-        # print("idxs", idxs)
-        # print("labeled_idxs", labeled_idxs)
+        self.train_loader2 = DataLoader(DatasetSplit(train_dataset, idxs), shuffle=True)
+        self.labeled_loader2 = DataLoader(DatasetSplit(labeled_dataset, labeled_idxs), shuffle=True)
+
+        print("train_dataset", self.train_loader2)
+        print("labeled_dataset", self.labeled_loader2)
 
         # size=sys.getsizeof(self.train_loader)
         # print("data_user", size)
@@ -47,11 +53,6 @@ class DNNModel(object):
         self.optimizer = optim.Adam(self.net.parameters(), lr=args.lr)
 
         self.history = {'train_loss': [], 'test_loss': []}
-
-        self.entropy_sampler = EntropySampler(self.net)
-        self.margin_sampler = MarginSampler(self.net)
-        self.least_confidence_sampler = LeastConfidenceSampler(self.net)
-
 
     def train(self, model, training_loader):
         mean_losses_superv = []
@@ -100,32 +101,37 @@ class DNNModel(object):
 
     def train_with_sampling(self, model):
         loss, train_acc, w = self.train(model, self.labeled_loader)
+        model.load_state_dict(w)
 
-        print("length of labeled_loader before AL", self.labeled_loader.__len__())
-        print("length of train_loader before AL", self.train_loader.__len__())
+        print("length of labeled dataset before AL", len(self.labeled_loader) * self.batch_size)
+        print("length of training dataset before AL", len(self.train_loader) * self.batch_size)
 
-        num_samples = int(self.num_samples * self.train_loader.__len__())
+        num_samples = int(self.num_samples * len(self.train_loader) * self.batch_size)
 
         print("length of num_samples", num_samples)
 
         if(self.args.al_method == "entropysampling"):
-            unlabeled_indices = self.entropy_sampler.sample(self.args, self.train_loader, num_samples)
+            self.entropy_sampler = EntropySampler(model)
+            unlabeled_indices = self.entropy_sampler.sample(self.args, self.train_loader2, num_samples)
 
         elif(self.args.al_method == "marginsampling"):
-            unlabeled_indices = self.margin_sampler.sample(self.args, self.train_loader, num_samples)
+            self.margin_sampler = MarginSampler(model)
+            unlabeled_indices = self.margin_sampler.sample(self.args, self.train_loader2, num_samples)
 
         else:
-            unlabeled_indices = self.least_confidence_sampler.sample(self.args, self.train_loader, num_samples)
+            self.least_confidence_sampler = LeastConfidenceSampler(model)
+            unlabeled_indices = self.least_confidence_sampler.sample(self.args, self.train_loader2, num_samples)
 
-        print("unlabeled_indices", unlabeled_indices)
-
+        # Get dataset consisting of labeled_idxs of the labeled dataset
         labeled_split_dataset = DatasetSplit(self.labeled_dataset, self.labeled_idxs)
+        
+        # Get dataset for unlabeled_idxs of the training dataset
         unlabeled_split_dataset = DatasetSplit(self.train_dataset, unlabeled_indices)
 
         combined_dataset = ConcatDataset([labeled_split_dataset, unlabeled_split_dataset])
         combined_loader = DataLoader(combined_dataset, batch_size=self.args.batch_size, shuffle=True)
         
-        # Train the `model` on the combined dataset
+        # Train the model on the combined dataset
         loss, train_acc, w = self.train(model, combined_loader)
 
         return loss, train_acc, w, unlabeled_indices
@@ -168,6 +174,12 @@ class DNNModel(object):
                                zero_division=0)  # labels=np.unique(output_list))))
             precision = precision_score(target_list, output_list, average="macro", zero_division=0)
             recall = recall_score(target_list, output_list, average="macro", zero_division=0)
+
+            # Format the metrics to have six decimal places
+            f1score = format(f1score, ".6f")
+            precision = format(precision, ".6f")
+            recall = format(recall, ".6f")
+
             class_report = classification_report(target_list, output_list, digits=4)
 
             # print(' F1 Score : ' + str(f1_score(target_list, output_list, average = "macro")))

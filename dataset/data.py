@@ -2,7 +2,8 @@ import pandas as pd
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 import numpy as np
-
+from imblearn.over_sampling import SMOTE
+import matplotlib.pyplot as plt
 
 def load_dataset(file_path):
     df = pd.read_csv(file_path, low_memory=False)
@@ -36,7 +37,7 @@ def encode_text_dummy(df, name):
 
 
 def preprocess_dataset(file_path):
-    print(file_path)
+    # print(file_path)
     df = load_dataset(file_path)
     print(df['Attack_type'].value_counts())
 
@@ -63,8 +64,16 @@ def preprocess_dataset(file_path):
                        "http.file_data", "http.request.full_uri", "icmp.transmit_timestamp", "http.request.uri.query",
                        "tcp.options", "tcp.payload", "tcp.srcport", "tcp.dstport", "udp.port", "mqtt.msg"]
 
+    # drop unnecessary flow features columns
     df = drop_columns(df4, columns_to_drop)
+
+    # replace INF values with NaN
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+    # drop rows with NaN values
     df = drop_missing_values(df)
+
+    # drop duplicate rows
     df = drop_duplicates(df)
     df = shuffle(df)
 
@@ -105,11 +114,14 @@ def preprocess_dataset(file_path):
 
     df = df.drop(corr_features, axis=1)
     df = df.drop(feat, axis=1)
-
+    df.to_csv('preprocessed_DNN.csv', encoding='utf-8', index=False)
+    print(df['Attack_type'].value_counts())
     return df
 
 
 def split_dataset(df, seed, size, labeled_data_ratio):
+    # print(df['Attack_type'].value_counts())
+
     y = df['Attack_type']
     X = df.drop(['Attack_type'], axis=1)
 
@@ -119,6 +131,34 @@ def split_dataset(df, seed, size, labeled_data_ratio):
     print("Train set size: ", len(X_train))
     print("Validation set size: ", len(X_val))
     print("Test set size: ", len(X_test))
+
+    # # Plot a bar graph to visualize class percentages
+    # plt.figure(figsize=(10, 6))
+    # plt.bar(unique_classes, class_sample_percentages)
+    # plt.xlabel('Class')
+    # plt.ylabel('Percentage (%)')
+    # plt.title('Percentage of Each Sample Class in y_train')
+    # plt.xticks(rotation=45)
+    # plt.show()
+
+    # smote = SMOTE(sampling_strategy='auto', random_state=42)
+    # X_train, y_train = smote.fit_resample(X_train, y_train)
+
+    # # Calculate the counts and percentages of each class in y_train
+    # class_sample_counts = [np.sum(y_train == cls) for cls in unique_classes]
+    # class_sample_percentages = [(count / len(y_train)) * 100 for count in class_sample_counts]
+
+    # for cls, count, percentage in zip(unique_classes, class_sample_counts, class_sample_percentages):
+    #     print(f"Class {cls}: {count} samples ({percentage:.2f}%)")
+
+    # # Plot a bar graph to visualize class percentages
+    # plt.figure(figsize=(10, 6))
+    # plt.bar(unique_classes, class_sample_percentages)
+    # plt.xlabel('Class')
+    # plt.ylabel('Percentage (%)')
+    # plt.title('Percentage of Each Sample Class in y_train')
+    # plt.xticks(rotation=45)
+    # plt.show()
 
     labeled_size = int(len(X_train) * labeled_data_ratio)
 
@@ -134,7 +174,7 @@ def split_dataset(df, seed, size, labeled_data_ratio):
     print("Train set size after labeled data: ", len(X_train))
     print("Validation set size after labeled data: ", len(X_val))
     print("Test set size after labeled data: ", len(X_test))
-    print("Labeled set size after labeled data: ", len(X_labeled))    
+    print("Labeled set size after labeled data: ", len(X_labeled))  
 
     return X_train, X_val, X_test, X_labeled, y_train, y_val, y_test, y_labeled
 
