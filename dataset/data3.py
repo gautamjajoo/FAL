@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+
 
 def encode_text_dummy(df, name):
     dummies = pd.get_dummies(df[name])
@@ -34,12 +36,12 @@ def preprocess_dataset():
     data['Attack Type'] = data['Attack Type'].map(attacks)
     
     print(data['Attack Type'].value_counts())
-
+    data.info()
     return data
 
 def split_dataset(df, seed, size, labeled_data_ratio):
-    y = df['Attack_type']
-    X = df.drop(['Attack_type'], axis=1)
+    y = df['Attack Type']
+    X = df.drop(['Attack Type'], axis=1)
 
     X_train, X_break, y_train, y_break = train_test_split(X, y, random_state=seed, test_size=size)
     X_test, X_val, y_test, y_val = train_test_split(X_break, y_break, random_state=seed+1, test_size=0.5)
@@ -47,6 +49,12 @@ def split_dataset(df, seed, size, labeled_data_ratio):
     print("Train set size: ", len(X_train))
     print("Validation set size: ", len(X_val))
     print("Test set size: ", len(X_test))
+
+    # Feature scaling using min-max scaling
+    scaler = MinMaxScaler()
+    X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+    X_val = pd.DataFrame(scaler.transform(X_val), columns=X_val.columns)
+    X_test = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
 
     labeled_size = int(len(X_train) * labeled_data_ratio)
 
@@ -62,10 +70,10 @@ def split_dataset(df, seed, size, labeled_data_ratio):
     print("Train set size after labeled data: ", len(X_train))
     print("Validation set size after labeled data: ", len(X_val))
     print("Test set size after labeled data: ", len(X_test))
-    print("Labeled set size after labeled data: ", len(X_labeled))    
+    print("Labeled set size after labeled data: ", len(X_labeled))  
 
     return X_train, X_val, X_test, X_labeled, y_train, y_val, y_test, y_labeled
 
 
-df = preprocess_dataset()
-print(df.info())
+# df = preprocess_dataset()
+# print(df.info())

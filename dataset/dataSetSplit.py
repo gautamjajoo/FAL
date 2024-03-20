@@ -13,13 +13,11 @@ class DatasetSplit(Dataset):
 
     def __len__(self):
         return len(self.idxs)
-    
-    def __len_dataset__(self):
-        return len(self.idxs)
 
     def __getitem__(self, item):
         data, target = self.dataset[self.idxs[item]]
-        return data.clone().detach(), target.clone().detach()
+        original_idx = self.idxs[item]
+        return data.clone().detach(), target.clone().detach(), original_idx
 
         # data = self.dataset[self.idxs[item]]
         # return torch.tensor(data), torch.tensor(data)

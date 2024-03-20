@@ -3,7 +3,14 @@ from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 import numpy as np
 from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import BorderlineSMOTE
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+from collections import Counter
+from matplotlib import pyplot
+from numpy import where
+from sklearn.decomposition import PCA
+import seaborn as sns
 
 def load_dataset(file_path):
     df = pd.read_csv(file_path, low_memory=False)
@@ -116,8 +123,8 @@ def preprocess_dataset(file_path):
     df = df.drop(feat, axis=1)
     df.to_csv('preprocessed_DNN.csv', encoding='utf-8', index=False)
     print(df['Attack_type'].value_counts())
-    return df
 
+    return df
 
 def split_dataset(df, seed, size, labeled_data_ratio):
     # print(df['Attack_type'].value_counts())
@@ -132,6 +139,52 @@ def split_dataset(df, seed, size, labeled_data_ratio):
     print("Validation set size: ", len(X_val))
     print("Test set size: ", len(X_test))
 
+    # # Calculate the correlation matrix
+    # corr_matrix = X_train.corr().round(1)
+
+    # # Create a heatmap
+    # plt.figure(figsize=(12, 8))
+    # sns.heatmap(corr_matrix, cmap='coolwarm', linewidths=0.5)
+    # plt.title('Correlation Heatmap')
+    # plt.xticks(fontsize=6, rotation=90)
+    # plt.yticks(fontsize=6, rotation=0)
+    # plt.tight_layout()
+    # plt.show()
+
+    # Feature scaling using min-max scaling
+    scaler = MinMaxScaler()
+    X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+    X_val = pd.DataFrame(scaler.transform(X_val), columns=X_val.columns)
+    X_test = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
+
+    # pca = PCA(n_components=2)
+    # X_pca = pca.fit_transform(X_train)
+
+    # df = pd.DataFrame(data=X_pca, columns=['PC1', 'PC2'])
+    # df['Class'] = y_train
+
+    # # Scatter plot
+    # plt.figure(figsize=(10, 8))
+    # sns.scatterplot(x='PC1', y='PC2', hue='Class', data=df, palette='viridis', legend='full')
+    # plt.title('Scatter Plot of Classes in Reduced Dimension')
+    # plt.show()
+
+    # counter = Counter(y_train)
+    # print(counter)
+
+    # Combine features and labels for the pairplot
+    # train_data = X_train.copy()
+    # train_data['Class'] = y_train
+
+    # # Displaying class distribution in the training set
+    # class_distribution = Counter(y_train)
+    # print("Class distribution in the training set:", class_distribution)
+
+    # # Visualizing relationships between features using pairplot
+    # sns.pairplot(train_data, hue='Class', markers='o', palette='viridis')
+    # plt.suptitle("Pair Plot of Features for Each Class")
+    # plt.show()
+
     # # Plot a bar graph to visualize class percentages
     # plt.figure(figsize=(10, 6))
     # plt.bar(unique_classes, class_sample_percentages)
@@ -141,9 +194,13 @@ def split_dataset(df, seed, size, labeled_data_ratio):
     # plt.xticks(rotation=45)
     # plt.show()
 
-    # smote = SMOTE(sampling_strategy='auto', random_state=42)
+    # d = {1: 10000, 3: 10000, 12: 10000}
+
+    # smote = SMOTE(sampling_strategy = d, random_state=42)
+    # # smote = SMOTE(random_state=42)
     # X_train, y_train = smote.fit_resample(X_train, y_train)
 
+    # unique_classes = [1, 3, 12]
     # # Calculate the counts and percentages of each class in y_train
     # class_sample_counts = [np.sum(y_train == cls) for cls in unique_classes]
     # class_sample_percentages = [(count / len(y_train)) * 100 for count in class_sample_counts]
@@ -189,3 +246,12 @@ def split_dataset(df, seed, size, labeled_data_ratio):
 
 # Print additional information if needed
 # X_train.info()
+
+def correlation(dataset, threshold):
+    col_corr = set()  
+    corr_matrix = dataset.corr()
+    for i in range(len(corr_matrix.columns)):
+        for j in range(i):
+            if abs(corr_matrix.iloc[i, j]) > threshold: colname = corr_matrix.columns[i]                  
+    col_corr.add(colname)
+    return col_corr

@@ -12,7 +12,14 @@ class LeastConfidenceSampler:
         probabilities = self.predict_probability.predict_probabilities(args, train_loader)
         confidences = self.calculate_confidences(probabilities)
         selected_indices = self.select_indices(confidences, num_samples)
-        return selected_indices
+        
+        # Get the original training dataset indices using DatasetSplit
+        original_indices = []
+        for idx in selected_indices:
+            _, _, original_idx = train_loader.dataset[idx]
+            original_indices.append(original_idx)
+
+        return original_indices
 
     def calculate_confidences(self, probabilities):
         confidences = []

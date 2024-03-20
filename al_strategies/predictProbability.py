@@ -10,7 +10,7 @@ class PredictProbability:
         probabilities = []
 
         with torch.no_grad():
-            for inputs, _ in dataloader:
+            for inputs, _, _ in dataloader:
                 inputs = inputs.to(device)
                 outputs = self.model(inputs)
                 probabilities.append(nn.functional.softmax(outputs, dim=1).squeeze().tolist())

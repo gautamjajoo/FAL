@@ -13,17 +13,26 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB  
 import seaborn as sns
 import matplotlib.pyplot as plt
+from torch import nn
+from torch.optim import Adam
+from IIoTmodel import DNN
+from train_classical import DNNModel
+
 sns.set()
 
 file_path = '/Users/gautamjajoo/Desktop/FAL/dataset/Edge-IIoTset/ML-EdgeIIoT-dataset.csv'
-
+preprocessed_file_path = '/Users/gautamjajoo/Desktop/FAL/preprocessed_DNN.csv'
 
 if __name__ == '__main__':
     args = args_parser()
     args.device = torch.device('cuda:{}'.format(args.gpu) if torch.cuda.is_available() and args.gpu != -1 else 'cpu')
     torch.manual_seed(args.seed)
 
-    df = preprocess_dataset(file_path)
+    # df = preprocess_dataset(file_path)
+    df = pd.read_csv(preprocessed_file_path, low_memory=False)
+    print(len(df))
+    # df = df.sample(frac=0.2, random_state=42)
+    print(len(df))
     num_classes = df['Attack_type'].nunique()
     input_features = df.drop(['Attack_type'], axis=1).shape[1]
     print("Number of classes:", num_classes)
@@ -35,25 +44,6 @@ if __name__ == '__main__':
     class_sample_counts = [np.sum(y_train == cls) for cls in unique_classes]
     for cls, count in zip(unique_classes, class_sample_counts):
         print(f"Class {cls}: {count} samples")
-
-    unique_classes = y_test.unique()
-    class_sample_counts = [np.sum(y_test == cls) for cls in unique_classes]
-    for cls, count in zip(unique_classes, class_sample_counts):
-        print(f"Class {cls}: {count} samples")
-
-    # Feature scaling using min-max scaling
-    scaler = MinMaxScaler()
-    scaled_X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
-    scaled_X_test = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
-
-    X_train = scaled_X_train
-    X_test = scaled_X_test
-
-    X_train = X_train.to_numpy()
-    X_test = X_test.to_numpy()
-
-    y_train = y_train.to_numpy()
-    y_test = y_test.to_numpy()
 
     print("Length of train size: ")
 
@@ -85,6 +75,22 @@ if __name__ == '__main__':
             plt.text(model, accuracy, f'{accuracy:.4f}', ha='center', va='bottom')
 
         plt.show()
+
+    # Instantiate the model
+    DNN_model = DNN(args.input_features, args.num_classes, args.hidden_layers, args.hidden_nodes)
+    print(DNN_model)
+
+    DNN_client = DNNModel(args=args, model = DNN_model, X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
+    loss, train_acc, w = DNN_client.train()
+
+    test_acc, F1_score, Precision, Recall, class_report, test_loss = DNN_client.test_inference(DNN_model)
+
+    print("|---- Test Accuracy: {:.6f}%".format(test_acc))
+    print("|---- F1_score:", F1_score)
+    print("|---- Precision:", Precision)
+    print("|---- Recall:", Recall)
+    print(class_report)
+    print(f'Testing Loss : {np.mean(np.array(test_loss))}')
 
     # Logistic Regression
     classifier = LogisticRegression(random_state=42, max_iter=5000)
@@ -137,7 +143,7 @@ if __name__ == '__main__':
     print("\nClassification Report:\n", report)
 
     # Random Forest
-    classifier = RandomForestClassifier(n_estimators = 10, criterion = 'entropy', random_state = 42)
+    classifier = RandomForestClassifier(n_estimators=10, criterion='entropy', random_state=42)
     classifier.fit(X_train, y_train)
 
     y_pred = classifier.predict(X_test)
@@ -146,12 +152,12 @@ if __name__ == '__main__':
     report = classification_report(y_test, y_pred, output_dict=True)
     classification_reports["random_forest"] = report
 
-
     cm = confusion_matrix(y_test, y_pred)
     plot_confusion_matrix(cm, "Random Forest")
 
     print(f'Accuracy: {acc_random_forest * 100:.6f}%')
     print("\nClassification Report:\n", report)
+
 
     # SVM
     classifier = SVC(kernel='linear', random_state=0)  
@@ -171,7 +177,7 @@ if __name__ == '__main__':
     print("Classification Report:\n", report)
 
     # KNN
-    knn_classifier = KNeighborsClassifier(n_neighbors=5)
+    knn_classifier = KNeighborsClassifier()
     knn_classifier.fit(X_train, y_train)
     y_pred = knn_classifier.predict(X_test)
 

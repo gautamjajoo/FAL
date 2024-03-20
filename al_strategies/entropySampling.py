@@ -8,11 +8,18 @@ class EntropySampler:
         self.predict_probability = PredictProbability(self.model)
 
     def sample(self, args, train_loader, num_samples):
-        print("I AM IN ENTROPY")
+        print("I am in Entropy")
         probabilities = self.predict_probability.predict_probabilities(args, train_loader)
         entropies = self.calculate_entropies(probabilities)
         selected_indices = self.select_indices(entropies, num_samples)
-        return selected_indices
+
+        # Get the original training dataset indices using DatasetSplit
+        original_indices = []
+        for idx in selected_indices:
+            _, _, original_idx = train_loader.dataset[idx]
+            original_indices.append(original_idx)
+
+        return original_indices
 
     def calculate_entropies(self, probabilities):
         entropies = []
@@ -25,4 +32,3 @@ class EntropySampler:
         sorted_indices = sorted(range(len(entropies)), key=lambda k: entropies[k], reverse=True)
         selected_indices = sorted_indices[:num_samples]
         return selected_indices
-    

@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.utils import shuffle
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 
 def fixDataType(df_dataset):
@@ -88,16 +89,16 @@ def fixDataType(df_dataset):
 
 
 def preprocess_dataset():
-    data1 = pd.read_csv("/Users/perera/Desktop/FAL/FAL/dataset/CSE-CIC-IDS2018/02-28-2018.csv", low_memory=False)
-    data2 = pd.read_csv("/Users/perera/Desktop/FAL/FAL/dataset/CSE-CIC-IDS2018/03-01-2018.csv", low_memory=False)
-    data3 = pd.read_csv("/Users/perera/Desktop/FAL/FAL/dataset/CSE-CIC-IDS2018/02-16-2018.csv", low_memory=False)
-    data4 = pd.read_csv("/Users/perera/Desktop/FAL/FAL/dataset/CSE-CIC-IDS2018/02-15-2018.csv", low_memory=False)
-    data5 = pd.read_csv("/Users/perera/Desktop/FAL/FAL/dataset/CSE-CIC-IDS2018/02-21-2018.csv", low_memory=False)
-    data6 = pd.read_csv("/Users/perera/Desktop/FAL/FAL/dataset/CSE-CIC-IDS2018/03-02-2018.csv", low_memory=False)
-    data7 = pd.read_csv("/Users/perera/Desktop/FAL/FAL/dataset/CSE-CIC-IDS2018/02-22-2018.csv", low_memory=False)
-    data8 = pd.read_csv("/Users/perera/Desktop/FAL/FAL/dataset/CSE-CIC-IDS2018/02-20-2018.csv", low_memory=False)
-    data9 = pd.read_csv("/Users/perera/Desktop/FAL/FAL/dataset/CSE-CIC-IDS2018/02-14-2018.csv", low_memory=False)
-    data10 = pd.read_csv("/Users/perera/Desktop/FAL/FAL/dataset/CSE-CIC-IDS2018/02-23-2018.csv", low_memory=False)
+    data1 = pd.read_csv("/Users/gautamjajoo/Desktop/FAL/dataset/CSE-CIC-IDS2018/02-28-2018.csv", low_memory=False)
+    data2 = pd.read_csv("/Users/gautamjajoo/Desktop/FAL/dataset/CSE-CIC-IDS2018/03-01-2018.csv", low_memory=False)
+    data3 = pd.read_csv("/Users/gautamjajoo/Desktop/FAL/dataset/CSE-CIC-IDS2018/02-16-2018.csv", low_memory=False)
+    data4 = pd.read_csv("/Users/gautamjajoo/Desktop/FAL/dataset/CSE-CIC-IDS2018/02-15-2018.csv", low_memory=False)
+    data5 = pd.read_csv("/Users/gautamjajoo/Desktop/FAL/dataset/CSE-CIC-IDS2018/02-21-2018.csv", low_memory=False)
+    data6 = pd.read_csv("/Users/gautamjajoo/Desktop/FAL/dataset/CSE-CIC-IDS2018/03-02-2018.csv", low_memory=False)
+    data7 = pd.read_csv("/Users/gautamjajoo/Desktop/FAL/dataset/CSE-CIC-IDS2018/02-22-2018.csv", low_memory=False)
+    data8 = pd.read_csv("/Users/gautamjajoo/Desktop/FAL/dataset/CSE-CIC-IDS2018/02-20-2018.csv", low_memory=False)
+    data9 = pd.read_csv("/Users/gautamjajoo/Desktop/FAL/dataset/CSE-CIC-IDS2018/02-14-2018.csv", low_memory=False)
+    data10 = pd.read_csv("/Users/gautamjajoo/Desktop/FAL/dataset/CSE-CIC-IDS2018/02-23-2018.csv", low_memory=False)
 
     data8.drop(columns=['Flow ID', 'Src IP', 'Src Port', 'Dst IP'], inplace=True)
 
@@ -144,6 +145,12 @@ def split_dataset(df, seed, size, labeled_data_ratio):
     print("Validation set size: ", len(X_val))
     print("Test set size: ", len(X_test))
 
+        # Feature scaling using min-max scaling
+    scaler = MinMaxScaler()
+    X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+    X_val = pd.DataFrame(scaler.transform(X_val), columns=X_val.columns)
+    X_test = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
+
     labeled_size = int(len(X_train) * labeled_data_ratio)
 
     labeled_indices = np.random.choice(len(X_train), labeled_size, replace=False)
@@ -158,7 +165,7 @@ def split_dataset(df, seed, size, labeled_data_ratio):
     print("Train set size after labeled data: ", len(X_train))
     print("Validation set size after labeled data: ", len(X_val))
     print("Test set size after labeled data: ", len(X_test))
-    print("Labeled set size after labeled data: ", len(X_labeled))    
+    print("Labeled set size after labeled data: ", len(X_labeled))  
 
     return X_train, X_val, X_test, X_labeled, y_train, y_val, y_test, y_labeled
 
