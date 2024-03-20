@@ -28,8 +28,8 @@ if __name__ == '__main__':
     args.device = torch.device('cuda:{}'.format(args.gpu) if torch.cuda.is_available() and args.gpu != -1 else 'cpu')
     torch.manual_seed(args.seed)
 
-    # df = preprocess_dataset(file_path)
-    df = pd.read_csv(preprocessed_file_path, low_memory=False)
+    df = preprocess_dataset(file_path)
+    # df = pd.read_csv(preprocessed_file_path, low_memory=False)
     print(len(df))
     # df = df.sample(frac=0.2, random_state=42)
     print(len(df))

@@ -5,8 +5,7 @@ from dataset.dataSetSplit import DatasetSplit
 import torch.optim as optim
 from IIoTmodel import DNN
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, classification_report, \
-    confusion_matrix
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, classification_report
 from al_strategies.entropySampling import EntropySampler
 from al_strategies.marginSampling import MarginSampler
 from al_strategies.leastConfidence import LeastConfidenceSampler
@@ -41,12 +40,12 @@ class DNNModel(object):
         print("train_dataset", len(self.subset_loader))
         print("labeled_dataset", len(self.labeled_loader2))
 
-        # size=sys.getsizeof(self.train_loader)
-        # print("data_user", size)
         self.device = args.device
+
         # Default criterion set to NLL loss function
         # self.criterion = nn.NLLLoss()
         self.criterion = nn.CrossEntropyLoss()
+
         # for one hot encoding
         # self.criterion= nn.BCELoss()
         self.client_epochs = args.client_epochs
@@ -99,7 +98,6 @@ class DNNModel(object):
         torch.save(self.net.state_dict(), path)
 
         return sum(mean_losses_superv) / len(mean_losses_superv), train_acc, self.net.state_dict()
-            # print('Done.....')
 
     def train_with_sampling(self, model):
         print("length of labeled dataset before AL", len(self.labeled_loader) * self.batch_size)
@@ -140,8 +138,6 @@ class DNNModel(object):
         return loss, train_acc, w, unlabeled_indices
 
     def test_inference(self, model, test_dataset):
-        nb_classes = 15
-        confusion_matrix = np.zeros((nb_classes, nb_classes))
         model.load_state_dict(torch.load("state_dict_model_IIoT_edge.pt"))
         self.net.eval()
         test_loss = 0
@@ -156,7 +152,6 @@ class DNNModel(object):
                 output = model(data.float())
 
                 batch_loss = self.criterion(output, target.long())
-                # print("done... test...")
                 # raise
                 test_loss += batch_loss.item()
                 total += target.size(0)
@@ -184,14 +179,6 @@ class DNNModel(object):
             recall = format(recall, ".6f")
 
             class_report = classification_report(target_list, output_list, digits=4)
-
-            # print(' F1 Score : ' + str(f1_score(target_list, output_list, average = "macro")))
-            # #labels=np.unique(output_list))))
-            # print(' Precision : '+str(precision_score(target_list, output_list,
-            # average="macro", labels=np.unique(output_list))))
-            # print(' Recall : '+str(recall_score(target_list, output_list, average="macro",
-            # labels=np.unique(output_list))))
-            # print("report", classification_report(target_list,output_list, digits=4))
 
             return acc, f1score, precision, recall, class_report, test_loss
         

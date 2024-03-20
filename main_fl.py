@@ -133,8 +133,8 @@ if __name__ == '__main__':
     # Function to get the dataset
     def get_dataset(args):
 
-        # df = preprocess_dataset(file_path)
-        df = pd.read_csv(preprocessed_file_path, low_memory=False)
+        df = preprocess_dataset(file_path)
+        # df = pd.read_csv(preprocessed_file_path, low_memory=False)
         
         num_classes = df['Attack_type'].nunique()
         input_features = df.drop(['Attack_type'], axis=1).shape[1]

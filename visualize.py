@@ -2,7 +2,6 @@ import torch
 from torch import nn
 from torchviz import make_dot
 
-# Define your DNN model
 class DNN(nn.Module):
     def __init__(self, input_features, num_classes, hidden_layers, hidden_nodes):
         super(DNN, self).__init__()
@@ -26,7 +25,7 @@ class DNN(nn.Module):
 
         return x
 
-# Create an instance of your DNN model
+# Create an instance of DNN model
 input_features = 78
 num_classes = 15
 hidden_layers = 2

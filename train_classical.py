@@ -5,12 +5,7 @@ from dataset.dataSetSplit import DatasetSplit
 import torch.optim as optim
 from IIoTmodel import DNN
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, classification_report, \
-    confusion_matrix
-from al_strategies.entropySampling import EntropySampler
-from al_strategies.marginSampling import MarginSampler
-from al_strategies.leastConfidence import LeastConfidenceSampler
-from al_strategies.randomSampling import RandomSampler
+from sklearn.metrics import f1_score, precision_score, recall_score, classification_report
 from torch.utils.data import TensorDataset
 import pandas as pd
 

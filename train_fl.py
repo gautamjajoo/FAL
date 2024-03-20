@@ -27,11 +27,7 @@ class DNNModel(object):
         self.idxs = idxs
         self.device = args.device
 
-        # Default criterion set to NLL loss function
-        # self.criterion = nn.NLLLoss()
         self.criterion = nn.CrossEntropyLoss()
-        # for one hot encoding
-        # self.criterion= nn.BCELoss()
         self.client_epochs = args.client_epochs
         self.net = model
         self.optimizer = optim.Adam(self.net.parameters(), lr=args.lr)
@@ -40,7 +36,6 @@ class DNNModel(object):
 
     def train(self, model):
         mean_losses_superv = []
-        # self.net.train()
         total = 0
         correct = 0
         for epoch in range(self.args.client_epochs):

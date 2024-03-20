@@ -154,21 +154,21 @@ if __name__ == '__main__':
     print("\nClassification Report:\n", report)
 
     # SVM
-    # classifier = SVC(kernel='linear', random_state=0)  
-    # classifier.fit(X_train, y_train)
+    classifier = SVC(kernel='linear', random_state=0)  
+    classifier.fit(X_train, y_train)
 
-    # y_pred = classifier.predict(X_test)
+    y_pred = classifier.predict(X_test)
 
-    # acc_svm = accuracy_score(y_test, y_pred)
-    # report = classification_report(y_test, y_pred, output_dict=True)
+    acc_svm = accuracy_score(y_test, y_pred)
+    report = classification_report(y_test, y_pred, output_dict=True)
 
-    # classification_reports["svm"] = report
+    classification_reports["svm"] = report
 
-    # cm = confusion_matrix(y_test, y_pred)
-    # plot_confusion_matrix(cm, "SVM")
+    cm = confusion_matrix(y_test, y_pred)
+    plot_confusion_matrix(cm, "SVM")
 
-    # print(f'Accuracy: {acc_svm * 100:.6f}% \n')
-    # print("Classification Report:\n", report)
+    print(f'Accuracy: {acc_svm * 100:.6f}% \n')
+    print("Classification Report:\n", report)
 
     # KNN
     knn_classifier = KNeighborsClassifier(n_neighbors=5)
